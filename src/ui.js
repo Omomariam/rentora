@@ -22,6 +22,8 @@ export function userMessage(error) {
   if (error?.code === 4001 || error?.code === 'ACTION_REJECTED' || message.includes('user rejected')) return { title: 'Request cancelled', message: 'Nothing changed. You can try again whenever you are ready.' };
   if (message.includes('insufficient funds')) return { title: 'Not enough BOT', message: 'Your wallet needs more test BOT for this amount and the network fee.' };
   if (message.includes('notavailable')) return { title: 'Resource unavailable', message: 'This resource was booked or paused before your transaction completed. Refresh the marketplace.' };
+  if (message.includes('dateunavailable')) return { title: 'Dates unavailable', message: 'Another booking already reserves part of this period. Choose different dates.' };
+  if (message.includes('nothingtowithdraw')) return { title: 'Nothing to withdraw', message: 'This wallet has no settled BOT ready to withdraw.' };
   if (message.includes('incorrectpayment')) return { title: 'Price changed', message: 'The required amount changed. Reopen the booking and review the latest total.' };
   if (message.includes('unauthorized')) return { title: 'Action not available', message: 'This connected wallet is not allowed to perform that action.' };
   if (message.includes('invalidstatus')) return { title: 'Status changed', message: 'This rental is no longer at the stage required for that action. Refresh the page.' };

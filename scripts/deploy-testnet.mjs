@@ -26,6 +26,7 @@ const address = await instance.getAddress();
 const receipt = await deployment.wait(2);
 
 const record = {
+  contract: contractName,
   network: 'BOT Chain Testnet',
   chainId: 968,
   address,

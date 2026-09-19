@@ -215,7 +215,8 @@ contract RentoraEscrowV2 {
         uint256[] storage ids = listingRentalIds[listingId];
         for (uint256 index = 0; index < ids.length; index++) {
             Rental storage existing = rentals[ids[index]];
-            bool reservesDates = existing.status == RentalStatus.Booked || existing.status == RentalStatus.Accepted ||
+            bool awaitingTimelyAcceptance = existing.status == RentalStatus.Booked && block.timestamp < existing.startTime;
+            bool reservesDates = awaitingTimelyAcceptance || existing.status == RentalStatus.Accepted ||
                 existing.status == RentalStatus.Active;
             if (reservesDates && startTime < existing.endTime && endTime > existing.startTime) return false;
         }

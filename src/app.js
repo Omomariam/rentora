@@ -5,14 +5,29 @@ import { formatDate, parseMetadata, runTransaction, shortAddress, showError, toa
 const page = document.body.dataset.page;
 let wallet;
 let allListings = [];
-const statusNames = ['Unknown', 'Booked', 'Active', 'Completed', 'Cancelled'];
+const statusNames = ['Unknown', 'Awaiting owner', 'Accepted', 'Active', 'Completed', 'Cancelled'];
 
 function renderChrome() {
   const links = [{ href: '/app.html', key: 'marketplace', label: 'Explore' }, { href: '/rentals.html', key: 'rentals', label: 'My rentals' }, { href: '/dashboard.html', key: 'dashboard', label: 'Owner dashboard' }];
-  document.querySelector('#appShell').innerHTML = `<header class="app-header"><a class="wordmark" href="/" aria-label="Rentora home"><span class="wordmark-symbol">R</span><span>rentora</span></a><nav>${links.map(link => `<a href="${link.href}" class="${page === link.key ? 'active' : ''}">${link.label}</a>`).join('')}</nav><div class="app-wallet-controls"><div class="wallet-chip"><i></i><span data-wallet-address>Wallet</span><small>${CHAIN.name}</small></div><button class="disconnect-button" id="disconnectAppWallet">Disconnect</button></div><button class="mobile-nav-button" aria-label="Open navigation">Menu</button></header>`;
-  document.querySelector('#appOverlays').innerHTML = `<div class="access-gate" id="accessGate"><div class="gate-panel"><a class="wordmark" href="/"><span class="wordmark-symbol">R</span><span>rentora</span></a><p class="overline">WALLET REQUIRED</p><h1 id="gateTitle">Connect to enter</h1><p id="gateMessage">Rentora reads your listings and rentals from your wallet on BOT Chain testnet.</p><button class="button button-primary button-large" id="gateConnect">Connect wallet</button><a class="gate-home" href="/">Return to landing page</a></div></div><dialog class="booking-dialog" id="bookingDialog"><button class="dialog-close" id="closeBooking" aria-label="Close">×</button><div class="booking-preview" id="bookingPreview"></div><div class="booking-panel"><p class="overline">ONCHAIN RENTAL</p><h2 id="bookingName"></h2><p id="bookingDescription"></p><div class="booking-owner"><span>Owner</span><a id="bookingOwner" target="_blank" rel="noreferrer"></a></div><div class="booking-dates"><label class="field"><span>Start</span><input id="bookingStart" type="datetime-local"/></label><label class="field"><span>End</span><input id="bookingEnd" type="datetime-local"/></label></div><div class="booking-total"><div><span>Rental fee</span><strong id="bookingFee">—</strong></div><div><span>Refundable deposit</span><strong id="bookingDeposit">—</strong></div><div><span>Total sent to escrow</span><strong id="bookingTotal">—</strong></div></div><div class="settlement-note"><strong>When does the owner get paid?</strong><span>The contract holds both amounts. The owner receives the rental fee when you complete an active rental, or when the owner settles it after the agreed end time. Your deposit is returned in the same transaction.</span></div><p class="inline-message" id="bookingMessage">Choose valid dates to see the exact contract quote.</p><button class="button button-primary button-large button-full" id="bookResource" disabled>Book with BOT</button><small class="contract-note">Funds go directly to <a href="${CONTRACT_URL}" target="_blank" rel="noreferrer">the verified escrow contract ↗</a></small></div></dialog><div class="toast" id="toast" role="status" aria-live="polite"><strong id="toastTitle"></strong><span id="toastMessage"></span></div>`;
+  document.querySelector('#appShell').innerHTML = `<header class="app-header"><a class="wordmark" href="/" aria-label="Rentora home"><span class="wordmark-symbol">R</span><span>rentora</span></a><nav>${links.map(link => `<a href="${link.href}" class="${page === link.key ? 'active' : ''}">${link.label}</a>`).join('')}</nav><div class="app-wallet-controls"><button class="withdraw-button" id="withdrawFunds" hidden>Withdraw BOT</button><div class="wallet-chip"><i></i><span data-wallet-address>Wallet</span><small>${CHAIN.name}</small></div><button class="disconnect-button" id="disconnectAppWallet">Disconnect</button></div><button class="mobile-nav-button" aria-label="Open navigation">Menu</button></header>`;
+  document.querySelector('#appOverlays').innerHTML = `<div class="access-gate" id="accessGate"><div class="gate-panel"><a class="wordmark" href="/"><span class="wordmark-symbol">R</span><span>rentora</span></a><p class="overline">WALLET REQUIRED</p><h1 id="gateTitle">Connect to enter</h1><p id="gateMessage">Rentora reads your listings and rentals from your wallet on BOT Chain testnet.</p><button class="button button-primary button-large" id="gateConnect">Connect wallet</button><a class="gate-home" href="/">Return to landing page</a></div></div><dialog class="booking-dialog" id="bookingDialog"><button class="dialog-close" id="closeBooking" aria-label="Close">×</button><div class="booking-preview" id="bookingPreview"></div><div class="booking-panel"><p class="overline">ONCHAIN RENTAL</p><h2 id="bookingName"></h2><p id="bookingDescription"></p><div class="booking-owner"><span>Owner</span><a id="bookingOwner" target="_blank" rel="noreferrer"></a></div><div class="booking-dates"><label class="field"><span>Start</span><input id="bookingStart" type="datetime-local"/></label><label class="field"><span>End</span><input id="bookingEnd" type="datetime-local"/></label></div><div class="booking-total"><div><span>Rental fee</span><strong id="bookingFee">—</strong></div><div><span>Refundable deposit</span><strong id="bookingDeposit">—</strong></div><div><span>Total sent to escrow</span><strong id="bookingTotal">—</strong></div></div><div class="settlement-note"><strong>How settlement works</strong><span>The owner must accept first. The contract holds both amounts, then credits the owner’s fee and your deposit when the rental is completed. Each party withdraws its settled BOT from the navbar.</span></div><p class="inline-message" id="bookingMessage">Choose valid dates to see the exact contract quote.</p><button class="button button-primary button-large button-full" id="bookResource" disabled>Book with BOT</button><small class="contract-note">Funds go directly to <a href="${CONTRACT_URL}" target="_blank" rel="noreferrer">the verified escrow contract ↗</a></small></div></dialog><div class="toast" id="toast" role="status" aria-live="polite"><strong id="toastTitle"></strong><span id="toastMessage"></span></div>`;
   document.querySelector('.mobile-nav-button').addEventListener('click', () => document.querySelector('.app-header nav').classList.toggle('open'));
   document.querySelector('#disconnectAppWallet').addEventListener('click', disconnectFromApp);
+  document.querySelector('#withdrawFunds').addEventListener('click', withdrawFunds);
+}
+
+async function updateWithdrawalBalance() {
+  if (!wallet) return;
+  const amount = await wallet.contract.pendingWithdrawals(wallet.account);
+  const button = document.querySelector('#withdrawFunds');
+  button.hidden = amount === 0n;
+  button.textContent = amount === 0n ? 'Withdraw BOT' : `Withdraw ${formatEther(amount)} BOT`;
+}
+
+async function withdrawFunds() {
+  const button = document.querySelector('#withdrawFunds');
+  const receipt = await runTransaction(button, { confirm: 'Confirm withdrawal…', wait: 'Withdrawing BOT…', doneTitle: 'BOT withdrawn', doneMessage: 'Your settled balance has been sent to your wallet.' }, () => wallet.contract.withdraw());
+  if (receipt) await updateWithdrawalBalance();
 }
 
 async function disconnectFromApp() {
@@ -50,6 +65,7 @@ async function unlockApp() {
     document.body.classList.add('wallet-ready');
     const balance = await wallet.provider.getBalance(wallet.account);
     document.querySelector('[data-wallet-address]').textContent = `${shortAddress(wallet.account)} · ${Number(formatEther(balance)).toLocaleString(undefined, { maximumFractionDigits: 4 })} BOT`;
+    await updateWithdrawalBalance();
     return true;
   } catch (error) {
     setGate('Switch to BOT Chain', `Rentora uses ${CHAIN.name} (chain ID ${CHAIN.id}). Switch networks to continue.`, 'Switch network');
@@ -104,7 +120,7 @@ function renderMarketplace() {
   visible.forEach(item => {
     const card = element('article', 'onchain-card'); card.append(listingVisual(item.meta));
     const body = element('div', 'onchain-card-body');
-    const metaLine = element('div', 'card-meta'); metaLine.append(element('span', '', item.meta.category || 'Resource'), element('span', item.available ? 'available' : 'unavailable', item.available ? 'Available' : 'Booked'));
+    const metaLine = element('div', 'card-meta'); metaLine.append(element('span', '', item.meta.category || 'Resource'), element('span', item.available ? 'available' : 'unavailable', item.available ? 'Schedule open' : 'Paused'));
     const title = element('h2', '', item.meta.name || `Resource #${item.id}`); const location = element('p', 'card-location', item.meta.location || 'Location not specified');
     const terms = element('div', 'card-terms'); const rate = element('strong', '', `${formatEther(item.dailyRate)} BOT`); rate.append(element('small', '', ' / day')); terms.append(rate, element('span', '', `${formatEther(item.deposit)} BOT deposit`));
     const owner = element('a', 'owner-link', `Owner ${shortAddress(item.owner)} ↗`); owner.href = explorerAddress(item.owner); owner.target = '_blank'; owner.rel = 'noreferrer'; owner.addEventListener('click', event => event.stopPropagation());
@@ -171,30 +187,41 @@ function rentalRow(rental, listing, forOwner) {
   info.append(top, element('h2', '', listing.meta.name || `Resource #${listing.id}`), element('p', '', `${formatDate(rental.startTime)} — ${formatDate(rental.endTime)}`));
   const money = element('div', 'rental-money'); money.append(element('span', '', `Fee ${formatEther(rental.rentalFee)} BOT`), element('span', '', `Deposit ${formatEther(rental.deposit)} BOT`)); info.append(money);
   const actions = element('div', 'rental-actions'); const now = Math.floor(Date.now() / 1000);
-  if (!forOwner && rental.status === 1 && now < rental.startTime) actions.append(actionButton('Cancel & refund', 'secondary', button => transactRental(button, rental, 'cancel')));
-  if (!forOwner && rental.status === 1 && now >= rental.startTime && now < rental.endTime) actions.append(actionButton('Start rental', 'primary', button => transactRental(button, rental, 'start')));
-  if (!forOwner && rental.status === 2) actions.append(actionButton('Complete & release funds', 'primary', button => transactRental(button, rental, 'complete')));
-  if (forOwner && (rental.status === 1 || rental.status === 2) && now >= rental.endTime) actions.append(actionButton('Settle completed rental', 'primary', button => transactRental(button, rental, 'complete', true)));
+  if (!forOwner && (rental.status === 1 || rental.status === 2) && now < rental.startTime) actions.append(actionButton('Cancel booking', 'secondary', button => transactRental(button, rental, 'cancel')));
+  if (!forOwner && rental.status === 1 && now >= rental.startTime) actions.append(actionButton('Refund unaccepted booking', 'secondary', button => transactRental(button, rental, 'refund')));
+  if (!forOwner && rental.status === 2 && now >= rental.startTime && now < rental.endTime) actions.append(actionButton('Start rental', 'primary', button => transactRental(button, rental, 'start')));
+  if (!forOwner && rental.status === 3) actions.append(actionButton('Complete rental', 'primary', button => transactRental(button, rental, 'complete')));
+  if (forOwner && rental.status === 1 && now < rental.startTime) actions.append(actionButton('Accept booking', 'primary', button => transactRental(button, rental, 'accept', true)), actionButton('Decline & refund', 'secondary', button => transactRental(button, rental, 'owner-cancel', true)));
+  if (forOwner && rental.status === 2 && now < rental.startTime) actions.append(actionButton('Cancel & refund', 'secondary', button => transactRental(button, rental, 'owner-cancel', true)));
+  if (forOwner && (rental.status === 2 || rental.status === 3) && now >= rental.endTime) actions.append(actionButton('Settle completed rental', 'primary', button => transactRental(button, rental, 'complete', true)));
   const explorer = element('a', 'button button-text', 'View contract ↗'); explorer.href = CONTRACT_URL; explorer.target = '_blank'; explorer.rel = 'noreferrer'; actions.append(explorer); row.append(info, actions); return row;
 }
 
 function actionButton(label, style, handler) { const button = element('button', `button button-${style}`, label); button.addEventListener('click', () => handler(button)); return button; }
 async function transactRental(button, rental, action, owner = false) {
-  const config = action === 'cancel' ? { method: 'cancelBeforeStart', confirm: 'Confirm cancellation…', wait: 'Returning funds…', title: 'Booking cancelled', message: 'The rental fee and deposit have been returned to your wallet.' } : action === 'start' ? { method: 'startRental', confirm: 'Confirm start…', wait: 'Starting rental…', title: 'Rental started', message: 'The rental is now marked active on BOT Chain.' } : { method: 'completeRental', confirm: 'Confirm completion…', wait: 'Settling funds…', title: 'Rental completed', message: owner ? 'The rental fee was paid and the renter’s deposit was returned.' : 'The owner was paid and your deposit was returned.' };
+  const configs = {
+    cancel: { method: 'cancelBeforeStart', confirm: 'Confirm cancellation…', wait: 'Crediting your refund…', title: 'Booking cancelled', message: 'Your fee and deposit are ready to withdraw from the navbar.' },
+    'owner-cancel': { method: 'ownerCancelBeforeStart', confirm: 'Confirm cancellation…', wait: 'Crediting the renter…', title: 'Booking cancelled', message: 'The renter’s full payment is ready for withdrawal.' },
+    refund: { method: 'refundUnaccepted', confirm: 'Confirm refund…', wait: 'Crediting your refund…', title: 'Refund approved', message: 'The owner did not accept in time. Your full payment is ready to withdraw.' },
+    accept: { method: 'acceptRental', confirm: 'Confirm acceptance…', wait: 'Accepting booking…', title: 'Booking accepted', message: 'The renter can start the rental during the agreed period.' },
+    start: { method: 'startRental', confirm: 'Confirm start…', wait: 'Starting rental…', title: 'Rental started', message: 'The rental is now active on BOT Chain.' },
+    complete: { method: 'completeRental', confirm: 'Confirm completion…', wait: 'Settling rental…', title: 'Rental settled', message: owner ? 'Your fee and the renter’s deposit are ready for withdrawal.' : 'Your deposit and the owner’s fee are ready for withdrawal.' }
+  };
+  const config = configs[action];
   const receipt = await runTransaction(button, { confirm: config.confirm, wait: config.wait, doneTitle: config.title, doneMessage: config.message }, () => wallet.contract[config.method](rental.id));
-  if (receipt) page === 'rentals' ? loadRentals() : loadDashboard();
+  if (receipt) { await updateWithdrawalBalance(); page === 'rentals' ? loadRentals() : loadDashboard(); }
 }
 
 async function loadDashboard() {
   const status = document.querySelector('#dashboardStatus'); const list = document.querySelector('#ownerList'); status.hidden = false; status.textContent = 'Reading owner activity from BOT Chain…'; list.replaceChildren();
   try {
     const ids = await wallet.contract.getOwnerListingIds(wallet.account); const listings = await Promise.all([...ids].reverse().map(getListing));
-    const rentalCount = Number(await wallet.contract.rentalCount()); const rentals = await Promise.all(Array.from({ length: rentalCount }, (_, index) => getRental(index + 1))); const ownedIds = new Set(listings.map(item => item.id)); const ownerRentals = rentals.filter(item => ownedIds.has(item.listingId)); const earned = ownerRentals.filter(item => item.status === 3).reduce((sum, item) => sum + item.rentalFee, 0n);
+    const rentalCount = Number(await wallet.contract.rentalCount()); const rentals = await Promise.all(Array.from({ length: rentalCount }, (_, index) => getRental(index + 1))); const ownedIds = new Set(listings.map(item => item.id)); const ownerRentals = rentals.filter(item => ownedIds.has(item.listingId)); const earned = ownerRentals.filter(item => item.status === 4).reduce((sum, item) => sum + item.rentalFee, 0n);
     const values = document.querySelectorAll('#ownerStats strong'); values[0].textContent = listings.filter(item => item.active).length; values[1].textContent = ownerRentals.length; values[2].textContent = `${formatEther(earned)} BOT`;
     if (!listings.length) { status.innerHTML = `This wallet has no listings. <a href="/create.html">List a resource</a>.`; return; }
     status.hidden = true;
     listings.forEach(listing => {
-      const group = element('section', 'owner-group'); const head = element('div', 'owner-group-head'); const title = element('div'); title.append(element('span', 'mono', `LISTING #${listing.id}`), element('h2', '', listing.meta.name || `Resource #${listing.id}`), element('p', '', `${formatEther(listing.dailyRate)} BOT/day · ${formatEther(listing.deposit)} BOT deposit · ${listing.available ? 'Available' : 'Booked'}`));
+      const group = element('section', 'owner-group'); const head = element('div', 'owner-group-head'); const title = element('div'); title.append(element('span', 'mono', `LISTING #${listing.id}`), element('h2', '', listing.meta.name || `Resource #${listing.id}`), element('p', '', `${formatEther(listing.dailyRate)} BOT/day · ${formatEther(listing.deposit)} BOT deposit · ${listing.active ? 'Accepting bookings' : 'Paused'}`));
       const toggle = actionButton(listing.active ? 'Pause listing' : 'Reactivate listing', 'secondary', button => toggleListing(button, listing)); head.append(title, toggle); group.append(head);
       const related = ownerRentals.filter(rental => rental.listingId === listing.id); if (related.length) related.slice().reverse().forEach(rental => group.append(rentalRow(rental, listing, true))); else group.append(element('p', 'no-bookings', 'No bookings for this listing yet.')); list.append(group);
     });
@@ -211,8 +238,8 @@ function bindPage() {
     wallet.contract.on('ListingCreated', loadMarketplace); wallet.contract.on('ListingAvailabilityChanged', loadMarketplace); wallet.contract.on('RentalBooked', loadMarketplace);
   }
   if (page === 'create') document.querySelector('#createListingForm').addEventListener('submit', createListing);
-  if (page === 'rentals') { document.querySelector('#refreshRentals').addEventListener('click', loadRentals); loadRentals(); wallet.contract.on('RentalStarted', loadRentals); wallet.contract.on('RentalCompleted', loadRentals); wallet.contract.on('RentalCancelled', loadRentals); }
-  if (page === 'dashboard') { loadDashboard(); wallet.contract.on('ListingCreated', loadDashboard); wallet.contract.on('ListingAvailabilityChanged', loadDashboard); wallet.contract.on('RentalBooked', loadDashboard); wallet.contract.on('RentalCompleted', loadDashboard); }
+  if (page === 'rentals') { document.querySelector('#refreshRentals').addEventListener('click', loadRentals); loadRentals(); wallet.contract.on('RentalAccepted', loadRentals); wallet.contract.on('RentalStarted', loadRentals); wallet.contract.on('RentalCompleted', loadRentals); wallet.contract.on('RentalCancelled', loadRentals); }
+  if (page === 'dashboard') { loadDashboard(); wallet.contract.on('ListingCreated', loadDashboard); wallet.contract.on('ListingAvailabilityChanged', loadDashboard); wallet.contract.on('RentalBooked', loadDashboard); wallet.contract.on('RentalAccepted', loadDashboard); wallet.contract.on('RentalCompleted', loadDashboard); wallet.contract.on('RentalCancelled', loadDashboard); }
 }
 
 renderChrome();
