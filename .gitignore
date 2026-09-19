@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.solc-build/
+qa-*.png
+.env
+.env.*
+!.env.example
+deployments/*.pending.json
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+.cache/
+coverage/
+artifacts/
+Acunetix BOTChain Integration Guide.md

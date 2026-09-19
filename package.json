@@ -1,0 +1,22 @@
+{
+  "name": "rentora",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "contract:compile": "node scripts/compile-contract.mjs",
+    "contract:deploy:testnet": "node scripts/deploy-testnet.mjs",
+    "contract:verify:testnet": "node scripts/verify-testnet.mjs"
+  },
+  "dependencies": {
+    "ethers": "^6.15.0"
+  },
+  "devDependencies": {
+    "dotenv": "^17.2.2",
+    "solc": "0.8.24",
+    "vite": "^7.1.7"
+  }
+}

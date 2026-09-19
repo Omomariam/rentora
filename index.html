@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Rentora is a BOT Chain marketplace for renting useful resources with onchain agreements and refundable deposits." />
+    <meta name="theme-color" content="#f3f1ea" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+    <title>Rentora — Rent access. Pay securely.</title>
+  </head>
+  <body class="landing-page" data-page="landing">
+    <header class="landing-nav frame">
+      <a class="wordmark" href="/" aria-label="Rentora home"><span class="wordmark-symbol">R</span><span>rentora</span></a>
+      <nav aria-label="Main navigation"><a href="#how">How it works</a><a href="#contract">Contract</a><a href="#bot-chain">BOT Chain</a></nav>
+      <button class="button button-ink" data-connect>Connect wallet <span aria-hidden="true">↗</span></button>
+    </header>
+    <main>
+      <section class="landing-hero frame">
+        <div class="hero-main">
+          <p class="overline">RENTORA / BOT CHAIN TESTNET</p>
+          <h1>Access is useful.<br />Ownership is optional.</h1>
+          <p class="hero-lede">Rent equipment, software access, and community resources with clear terms and a deposit held by code—not by Rentora.</p>
+          <div class="hero-actions"><button class="button button-primary button-large" data-connect>Connect wallet to enter</button><a class="text-link" href="#how">See how it works <span>↓</span></a></div>
+          <p class="wallet-requirement"><span></span>A compatible EVM wallet is required to enter the marketplace.</p>
+        </div>
+        <aside class="protocol-card" aria-label="Rentora protocol status">
+          <div class="protocol-head"><span>Protocol</span><span class="live-label"><i></i> Testnet live</span></div>
+          <div class="protocol-mark"><span class="large-r">R</span><span class="chain-line"></span><span class="bot-node">BOT</span></div>
+          <dl><div><dt>Network</dt><dd>BOT Chain Testnet</dd></div><div><dt>Chain ID</dt><dd>968</dd></div><div><dt>Settlement</dt><dd>Native BOT</dd></div><div><dt>Contract</dt><dd><a data-contract-link target="_blank" rel="noreferrer"><span data-contract-short></span> ↗</a></dd></div></dl>
+        </aside>
+      </section>
+      <section class="principles frame" id="how">
+        <div class="section-index">01 — HOW IT WORKS</div>
+        <div class="principle-grid"><article><span class="principle-number">01</span><h2>List the terms.</h2><p>Owners set a daily rate, a refundable deposit, and a maximum rental period. The listing is written to BOT Chain.</p></article><article><span class="principle-number">02</span><h2>Book onchain.</h2><p>Renters choose dates and approve one transaction. The rental fee and deposit move into the escrow contract.</p></article><article><span class="principle-number">03</span><h2>Complete and settle.</h2><p>When the rental is completed, the owner receives the fee and the renter receives the deposit back automatically.</p></article></div>
+      </section>
+      <section class="contract-section frame" id="contract">
+        <div class="contract-copy"><div class="section-index">02 — THE AGREEMENT</div><h2>The contract holds the money.<br />Rentora never does.</h2><p>Every booking records the resource, renter, start and end times, rental fee, deposit, and current status. Anyone can inspect the contract on the testnet explorer.</p><a class="button button-outline" data-contract-link target="_blank" rel="noreferrer">Inspect verified contract ↗</a></div>
+        <div class="contract-flow" aria-label="Rental settlement flow"><div><span>RENTER</span><strong>Fee + deposit</strong></div><i>→</i><div class="escrow-box"><span>SMART CONTRACT</span><strong>Escrow</strong></div><i>→</i><div><span>COMPLETION</span><strong>Fee to owner<br />Deposit to renter</strong></div></div>
+      </section>
+      <section class="chain-section" id="bot-chain"><div class="frame chain-inner"><div><p class="overline">ECOSYSTEM</p><h2>Built and settled on<br />BOT Chain.</h2></div><div class="chain-links"><a href="https://botchain.ai" target="_blank" rel="noreferrer"><span>BOT Chain</span><strong>botchain.ai ↗</strong></a><a href="https://scan.botchain.ai" target="_blank" rel="noreferrer"><span>Block explorer</span><strong>scan.botchain.ai ↗</strong></a></div></div></section>
+    </main>
+    <footer class="site-footer frame"><a class="wordmark" href="/"><span class="wordmark-symbol">R</span><span>rentora</span></a><p>Rent access. Pay securely.</p><span>BOT Chain · 2026</span></footer>
+    <div class="toast" id="toast" role="status" aria-live="polite"><strong id="toastTitle"></strong><span id="toastMessage"></span></div>
+    <script type="module" src="/src/site.js"></script>
+  </body>
+</html>
