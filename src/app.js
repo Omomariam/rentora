@@ -1,5 +1,5 @@
 import { formatEther, parseEther } from 'ethers';
-import { CHAIN, CONTRACT_ADDRESS, CONTRACT_URL, connectWallet, getConnectedAccounts, getWalletContext, walletAvailable } from './chain.js';
+import { CHAIN, CONTRACT_ADDRESS, CONTRACT_URL, connectWallet, disconnectWallet, getConnectedAccounts, getWalletContext, userDisconnected, walletAvailable } from './chain.js';
 import { formatDate, parseMetadata, runTransaction, shortAddress, showError, toast } from './ui.js';
 
 const page = document.body.dataset.page;
@@ -9,9 +9,23 @@ const statusNames = ['Unknown', 'Booked', 'Active', 'Completed', 'Cancelled'];
 
 function renderChrome() {
   const links = [{ href: '/app.html', key: 'marketplace', label: 'Explore' }, { href: '/rentals.html', key: 'rentals', label: 'My rentals' }, { href: '/dashboard.html', key: 'dashboard', label: 'Owner dashboard' }];
-  document.querySelector('#appShell').innerHTML = `<header class="app-header"><a class="wordmark" href="/" aria-label="Rentora home"><span class="wordmark-symbol">R</span><span>rentora</span></a><nav>${links.map(link => `<a href="${link.href}" class="${page === link.key ? 'active' : ''}">${link.label}</a>`).join('')}</nav><div class="wallet-chip"><i></i><span data-wallet-address>Wallet</span><small>${CHAIN.name}</small></div><button class="mobile-nav-button" aria-label="Open navigation">Menu</button></header>`;
-  document.querySelector('#appOverlays').innerHTML = `<div class="access-gate" id="accessGate"><div class="gate-panel"><a class="wordmark" href="/"><span class="wordmark-symbol">R</span><span>rentora</span></a><p class="overline">WALLET REQUIRED</p><h1 id="gateTitle">Connect to enter</h1><p id="gateMessage">Rentora reads your listings and rentals from your wallet on BOT Chain testnet.</p><button class="button button-primary button-large" id="gateConnect">Connect wallet</button><a class="gate-home" href="/">Return to landing page</a></div></div><dialog class="booking-dialog" id="bookingDialog"><button class="dialog-close" id="closeBooking" aria-label="Close">×</button><div class="booking-preview" id="bookingPreview"></div><div class="booking-panel"><p class="overline">ONCHAIN RENTAL</p><h2 id="bookingName"></h2><p id="bookingDescription"></p><div class="booking-owner"><span>Owner</span><a id="bookingOwner" target="_blank" rel="noreferrer"></a></div><div class="booking-dates"><label class="field"><span>Start</span><input id="bookingStart" type="datetime-local"/></label><label class="field"><span>End</span><input id="bookingEnd" type="datetime-local"/></label></div><div class="booking-total"><div><span>Rental fee</span><strong id="bookingFee">—</strong></div><div><span>Refundable deposit</span><strong id="bookingDeposit">—</strong></div><div><span>Total sent to escrow</span><strong id="bookingTotal">—</strong></div></div><p class="inline-message" id="bookingMessage">Choose valid dates to see the exact contract quote.</p><button class="button button-primary button-large button-full" id="bookResource" disabled>Book with BOT</button><small class="contract-note">Funds go directly to <a href="${CONTRACT_URL}" target="_blank" rel="noreferrer">the verified escrow contract ↗</a></small></div></dialog><div class="toast" id="toast" role="status" aria-live="polite"><strong id="toastTitle"></strong><span id="toastMessage"></span></div>`;
+  document.querySelector('#appShell').innerHTML = `<header class="app-header"><a class="wordmark" href="/" aria-label="Rentora home"><span class="wordmark-symbol">R</span><span>rentora</span></a><nav>${links.map(link => `<a href="${link.href}" class="${page === link.key ? 'active' : ''}">${link.label}</a>`).join('')}</nav><div class="app-wallet-controls"><div class="wallet-chip"><i></i><span data-wallet-address>Wallet</span><small>${CHAIN.name}</small></div><button class="disconnect-button" id="disconnectAppWallet">Disconnect</button></div><button class="mobile-nav-button" aria-label="Open navigation">Menu</button></header>`;
+  document.querySelector('#appOverlays').innerHTML = `<div class="access-gate" id="accessGate"><div class="gate-panel"><a class="wordmark" href="/"><span class="wordmark-symbol">R</span><span>rentora</span></a><p class="overline">WALLET REQUIRED</p><h1 id="gateTitle">Connect to enter</h1><p id="gateMessage">Rentora reads your listings and rentals from your wallet on BOT Chain testnet.</p><button class="button button-primary button-large" id="gateConnect">Connect wallet</button><a class="gate-home" href="/">Return to landing page</a></div></div><dialog class="booking-dialog" id="bookingDialog"><button class="dialog-close" id="closeBooking" aria-label="Close">×</button><div class="booking-preview" id="bookingPreview"></div><div class="booking-panel"><p class="overline">ONCHAIN RENTAL</p><h2 id="bookingName"></h2><p id="bookingDescription"></p><div class="booking-owner"><span>Owner</span><a id="bookingOwner" target="_blank" rel="noreferrer"></a></div><div class="booking-dates"><label class="field"><span>Start</span><input id="bookingStart" type="datetime-local"/></label><label class="field"><span>End</span><input id="bookingEnd" type="datetime-local"/></label></div><div class="booking-total"><div><span>Rental fee</span><strong id="bookingFee">—</strong></div><div><span>Refundable deposit</span><strong id="bookingDeposit">—</strong></div><div><span>Total sent to escrow</span><strong id="bookingTotal">—</strong></div></div><div class="settlement-note"><strong>When does the owner get paid?</strong><span>The contract holds both amounts. The owner receives the rental fee when you complete an active rental, or when the owner settles it after the agreed end time. Your deposit is returned in the same transaction.</span></div><p class="inline-message" id="bookingMessage">Choose valid dates to see the exact contract quote.</p><button class="button button-primary button-large button-full" id="bookResource" disabled>Book with BOT</button><small class="contract-note">Funds go directly to <a href="${CONTRACT_URL}" target="_blank" rel="noreferrer">the verified escrow contract ↗</a></small></div></dialog><div class="toast" id="toast" role="status" aria-live="polite"><strong id="toastTitle"></strong><span id="toastMessage"></span></div>`;
   document.querySelector('.mobile-nav-button').addEventListener('click', () => document.querySelector('.app-header nav').classList.toggle('open'));
+  document.querySelector('#disconnectAppWallet').addEventListener('click', disconnectFromApp);
+}
+
+async function disconnectFromApp() {
+  const button = document.querySelector('#disconnectAppWallet');
+  button.disabled = true;
+  button.textContent = 'Disconnecting…';
+  if (wallet?.contract) await wallet.contract.removeAllListeners();
+  const permissionRevoked = await disconnectWallet();
+  wallet = null;
+  document.body.classList.remove('wallet-ready');
+  setGate('Wallet disconnected', permissionRevoked ? 'Rentora no longer has permission to view this wallet.' : 'Rentora is locked. You can also remove this site from your wallet’s connected-sites menu.', 'Connect again');
+  button.disabled = false;
+  button.textContent = 'Disconnect';
 }
 
 function setGate(title, message, buttonLabel = 'Connect wallet') {
@@ -27,6 +41,7 @@ async function unlockApp() {
     document.querySelector('#gateConnect').disabled = true;
     return false;
   }
+  if (userDisconnected()) { setGate('Connect to enter', 'Your previous Rentora session was disconnected. Connect a wallet to unlock the app.'); return false; }
   const accounts = await getConnectedAccounts();
   if (!accounts.length) { setGate('Connect to enter', 'Your wallet address is used to find your real listings, bookings, and refunds on BOT Chain testnet.'); return false; }
   try {

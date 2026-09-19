@@ -1,11 +1,11 @@
 {
   "network": "BOT Chain Testnet",
   "chainId": 968,
-  "address": "0x477eaA87fD857632F8874ebe0Ad9DDE8Ffe6Dd7a",
-  "transactionHash": "0x956d8265ca4460d9178cbac56c1828b080bee5fbac506e0dbd616fa766d994cb",
-  "blockNumber": 23931209,
+  "address": "0xFe6bBFb31c545e0967813e66eF927aC79acD4c6D",
+  "transactionHash": "0xbe916b5e2600a2f7cb42715ba41d43f2a3dab313313c1289b86cd6fadcf0aa06",
+  "blockNumber": 23934140,
   "deployer": "0xA5B1e4196b92177F11f28EB8b987A839f0A91871",
   "compilerVersion": "v0.8.24+commit.e11b9ed9",
-  "deployedAt": "2026-09-19T08:33:48.295Z",
-  "explorerUrl": "https://scan.bohr.life/address/0x477eaA87fD857632F8874ebe0Ad9DDE8Ffe6Dd7a"
+  "deployedAt": "2026-09-19T09:10:26.091Z",
+  "explorerUrl": "https://scan.bohr.life/address/0xFe6bBFb31c545e0967813e66eF927aC79acD4c6D"
 }

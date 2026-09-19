@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import fs from 'node:fs';
 import path from 'node:path';
-import { compileContract, root, sourceName } from './contract-tools.mjs';
+import { compileContract, contractName, root, sourceName } from './contract-tools.mjs';
 
 const deploymentPath = path.join(root, 'deployments', 'testnet.json');
 if (!fs.existsSync(deploymentPath)) throw new Error('No testnet deployment record found. Deploy the contract first.');
@@ -17,7 +17,7 @@ const body = new URLSearchParams({
   contractaddress: deployment.address,
   sourceCode: JSON.stringify(input),
   codeformat: 'solidity-standard-json-input',
-  contractname: `${sourceName}:RentoraEscrow`,
+  contractname: `${sourceName}:${contractName}`,
   compilerversion: compilerVersion,
   optimizationUsed: '1',
   runs: '200'

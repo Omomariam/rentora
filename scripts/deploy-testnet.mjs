@@ -2,7 +2,7 @@ import 'dotenv/config';
 import fs from 'node:fs';
 import path from 'node:path';
 import { ContractFactory, JsonRpcProvider, Wallet } from 'ethers';
-import { compileContract, root, writeArtifact } from './contract-tools.mjs';
+import { compileContract, contractName, root, writeArtifact } from './contract-tools.mjs';
 
 const rpcUrl = 'https://rpc.bohr.life';
 const privateKey = process.env.PRIVATE_KEY;
@@ -17,7 +17,7 @@ const { contract, compilerVersion } = compileContract();
 writeArtifact(contract);
 
 const factory = new ContractFactory(contract.abi, `0x${contract.evm.bytecode.object}`, signer);
-console.log(`Deploying RentoraEscrow from ${signer.address} to BOT Chain testnet...`);
+console.log(`Deploying ${contractName} from ${signer.address} to BOT Chain testnet...`);
 const instance = await factory.deploy();
 const deployment = instance.deploymentTransaction();
 console.log(`Transaction submitted: ${deployment.hash}`);
@@ -38,5 +38,8 @@ const record = {
 };
 const deployments = path.join(root, 'deployments');
 fs.mkdirSync(deployments, { recursive: true });
+const currentDeployment = path.join(deployments, 'testnet.json');
+const previousDeployment = path.join(deployments, 'testnet-v1.json');
+if (fs.existsSync(currentDeployment) && !fs.existsSync(previousDeployment)) fs.copyFileSync(currentDeployment, previousDeployment);
 fs.writeFileSync(path.join(deployments, 'testnet.json'), JSON.stringify(record, null, 2));
 console.log(JSON.stringify(record, null, 2));

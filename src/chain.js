@@ -51,7 +51,23 @@ export async function connectWallet() {
   if (!walletAvailable()) throw new Error('WALLET_NOT_FOUND');
   await window.ethereum.request({ method: 'eth_requestAccounts' });
   await switchToBotChain();
+  sessionStorage.removeItem('rentora:user-disconnected');
   return getWalletContext();
+}
+
+export function userDisconnected() {
+  return sessionStorage.getItem('rentora:user-disconnected') === 'true';
+}
+
+export async function disconnectWallet() {
+  sessionStorage.setItem('rentora:user-disconnected', 'true');
+  if (!walletAvailable()) return false;
+  try {
+    await window.ethereum.request({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function switchToBotChain() {

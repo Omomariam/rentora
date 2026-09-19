@@ -1,5 +1,5 @@
-import { compileContract, writeArtifact } from './contract-tools.mjs';
+import { compileContract, contractName, writeArtifact } from './contract-tools.mjs';
 
 const { contract, compilerVersion } = compileContract();
 writeArtifact(contract);
-console.log(`RentoraEscrow compiled with ${compilerVersion}.`);
+console.log(`${contractName} compiled with ${compilerVersion}.`);
